@@ -6,6 +6,7 @@ import Link from "@material-ui/core/Link/index";
 import Typography from "@material-ui/core/Typography/index";
 import withAuth from "../../auth/withAuth";
 import history from "../../utils/history";
+import logo from "../../assets/logo.png";
 
 
 const Navbar = (props) => {
@@ -34,7 +35,7 @@ const Navbar = (props) => {
         </Link>
       </Typography>
     </Grid>;
-    
+  
   const backLink =
     <Grid item xs={4} onClick={() => history.goBack()}>
       <Typography align="center" color="primary">
@@ -48,7 +49,7 @@ const Navbar = (props) => {
     renderedLink = isAuthenticated ? profileLink : loginLink;
   else
     renderedLink = backLink;
-    
+  
   return (
     <Grid container
           item
@@ -58,15 +59,13 @@ const Navbar = (props) => {
       
       <Grid item xs={6} onClick={() => history.push('/')} style={{cursor: "pointer"}}>
         <Typography variant="h4" align="center" color="primary">
-          <FontAwesomeIcon icon={["fab", "itunes-note"]}
-                           style={{marginRight: "7px"}}
-                           size="sm"/>
+          <img src={logo} alt="Musync logo" height={48}/>
           Musync
         </Typography>
       </Grid>
       
       {renderedLink}
-      
+    
     </Grid>
   );
 };
