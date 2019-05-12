@@ -13,6 +13,7 @@ import {NearPlaces} from "./NearPlaces";
 import ConnectPlaceDialog from "./ConnectPlaceDialog";
 import withAuth from "../../auth/withAuth";
 import Link from "@material-ui/core/Link";
+import Typography from "@material-ui/core/Typography";
 
 
 class Home extends Component {
@@ -92,7 +93,7 @@ class Home extends Component {
     const {authUser, isAuthenticated} = this.props;
     const errorIcon = <FontAwesomeIcon icon={"exclamation-triangle"}/>;
     const userIcon = <FontAwesomeIcon icon={"user"}/>;
-
+    
     return (
       <Grid container
             alignItems="center"
@@ -119,7 +120,18 @@ class Home extends Component {
                       handleConnectPlace={this.handleConnectPlace} />
         }
         
-        { loading && <CircularProgress size={48}/> }
+        {
+          loading &&
+          <Grid container item xs={12}
+                alignItems="center"
+                justify="center"
+                direction="column">
+            <CircularProgress size={48}/>
+            <Typography>
+              Finding near places
+            </Typography>
+          </Grid>
+        }
         
         {
           !locationPermission &&
@@ -133,7 +145,7 @@ class Home extends Component {
         <ButtomLinks />
         
         <Footer/>
-      
+        
         <ConnectPlaceDialog open={connectPlaceState}
                             placeName={connectPlaceName}
                             placeId={connectPlaceId}
