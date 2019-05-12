@@ -81,7 +81,7 @@ async function createNewPlace(req, res) {
   
   const body = req.body;
   const {name, location, isPermanent, pin, playlist} = body;
-  if(!name || !location || !location.longitude || !location.latitude || !pin || !playlist){
+  if(!name || !location || !location.longitude || !location.latitude || !pin){
     res.status(400).send('Error: Missing information!');
     return;
   }
@@ -106,43 +106,48 @@ async function createNewPlace(req, res) {
     res.status(400).send("Error: You must use a different Spotify account!");
     return;
   }
-  
-  let pl = await spotifyController.getPlaylist(user.spotifyConnection, playlist);
-  if(pl.success)
-    pl = pl.response;
-  
-  let songs = [];
-  for (let track of pl.tracks.items) {
-    if(!track.track.id || !track.track.name)
-      continue;
-    
-    let spotifyItem = new models.SpotifyItem({
-      id: track.track.id,
-      uri: track.track.uri ? track.track.uri : "",
-      name: track.track.name,
-    });
-    
-    let artistArray = [];
-    for(const artist of track.track.artists){
-      let artistName = new DBBasicTypes.DBString(artist.name);
-      artistArray.push(artistName);
-    }
-    
-    let song = new models.Song({
-      artistName: artistArray,
-      name: track.track.name,
-      duration: track.track.duration_ms,
-      spotifySong: spotifyItem,
-    });
-    songs.push(song);
+
+  let pl = null;
+  if (playlist) {
+    pl = await spotifyController.getPlaylist(user.spotifyConnection, playlist);
   }
-  
-  let spotifyPlaylist = new models.SpotifyItem({
-    id: pl.id,
-    uri: pl.uri,
-    name: pl.name,
-    description: pl.description,
-  });
+
+  let spotifyPlaylist = new models.SpotifyItem();
+  let songs = [];
+  if (pl && pl.success) {
+    pl = pl.response;
+    for (let track of pl.tracks.items) {
+      if (!track.track.id || !track.track.name)
+        continue;
+
+      let spotifyItem = new models.SpotifyItem({
+        id: track.track.id,
+        uri: track.track.uri ? track.track.uri : "",
+        name: track.track.name,
+      });
+
+      let artistArray = [];
+      for (const artist of track.track.artists) {
+        let artistName = new DBBasicTypes.DBString(artist.name);
+        artistArray.push(artistName);
+      }
+
+      let song = new models.Song({
+        artistName: artistArray,
+        name: track.track.name,
+        duration: track.track.duration_ms,
+        spotifySong: spotifyItem,
+      });
+      songs.push(song);
+    }
+
+    spotifyPlaylist = new models.SpotifyItem({
+      id: pl.id,
+      uri: pl.uri,
+      name: pl.name,
+      description: pl.description,
+    });
+  }
   
   let playlistObj = new models.Playlist({
     songs: songs,
@@ -160,7 +165,7 @@ async function createNewPlace(req, res) {
     name: name,
     owner: user._id,
     pin: pin,
-    genres: !!isPermanent && genreIds,
+    genres: isPermanent ? genreIds : [],
     votes: [],
     votedSongs: [],
     songRecords: [],
@@ -275,7 +280,8 @@ async function connectToPlace(req, res) {
     let visitedPlace = new models.VisitedPlace({
       date: Date.now(),
       place: place._id,
-      visitCount: 1
+      visitCount: 1,
+      points: place.initialPoint,
     });
     
     let user = new models.User({
@@ -294,8 +300,13 @@ async function connectToPlace(req, res) {
 
     
   }
+  else if (req.session.connectedPlace && req.session.connectedPlace === place._id.toHexString()) { // Connecting to same place
+    res.json({ // No need to send anything else. Let frontend redirect
+      success: true,
+    });
+  }
   else {
-    
+
     if (!models.ObjectID.isValid(req.session.userId)) {
       req.session.destroy();
       res.status(400).send('Error: Authentication is invalid. Please login again');
@@ -309,10 +320,17 @@ async function connectToPlace(req, res) {
       return;
     }
     let visitedCount = 1;
+    let point = 0;
     let visitedPlaces = user.visitedPlaces;
     for(let i = 0; i <  visitedPlaces.length; i++){
-      if(place._id === visitedPlaces[i].place){
+      if(place._id.toHexString() === visitedPlaces[i].place.toHexString()){
         visitedCount = visitedPlaces[i].visitCount + 1;
+        if ((Date.now() - visitedPlaces[i].date.getTime()) < 24 * 60 * 60 * 1000) { // Reconnect in same day
+          point = visitedPlaces[i].points;
+        }
+        else {
+          point = place.initialPoint*(visitedCount/10+1);
+        }
         visitedPlaces.splice(i,1);
       }
     }
@@ -324,7 +342,7 @@ async function connectToPlace(req, res) {
     
     visitedPlaces.push(visitedPlace);
     user.visitedPlaces = visitedPlaces;  
-    user.points = place.initialPoint*(visitedCount/10+1);
+    user.points = point;
     
     req.session.connectedPlace = place._id.toHexString();
     res.json({ // No need to send anything else. Let frontend redirect
@@ -476,6 +494,15 @@ async function voteForSong(req, res) {
   votes[req.query.songIndex] += points;
   place.votes = votes;
   user.points = user.points - points;
+  let visitedPlaces = user.visitedPlaces;
+  for(let i = 0; i <  visitedPlaces.length; i++){
+    if(place._id.toHexString() === visitedPlaces[i].place.toHexString()){
+      visitedPlaces[i].points = user.points;
+      break;
+    }
+  }
+  user.visitedPlaces = visitedPlaces;
+
   res.json({
     success: true,
   });
