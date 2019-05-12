@@ -8,6 +8,7 @@ import Link from "@material-ui/core/Link";
 import ListItemSecondaryAction from "@material-ui/core/ListItemSecondaryAction";
 import ListItemAvatar from "@material-ui/core/ListItemAvatar";
 import Avatar from "@material-ui/core/Avatar";
+import yellow from "@material-ui/core/es/colors/yellow";
 
 
 const SongItem = (props) => {
@@ -33,7 +34,11 @@ const SongItem = (props) => {
   }
   else if(highlighted){
     style={
-      backgroundColor: "#e8f5e9"
+      backgroundColor: "black",
+      borderColor: "yellow",
+      borderOpacity: "1",
+      borderStyle: "solid",
+      borderWidth: "2px 0px"
     }
   }
   return (

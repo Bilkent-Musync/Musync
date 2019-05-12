@@ -9,8 +9,8 @@ import logo from "../../assets/logo.png";
 export const Heading = () => {
   return (
     <Grid item xs={10} onClick={() => history.push('/')} style={{cursor: "pointer"}}>
-      <Typography variant="h2" align="center" color="primary">
-        <img src={logo} alt="Musync logo" height={48}/>
+      <img src={logo} alt="Musync logo" height={48}/>
+      <Typography variant="h2" align="center" color="primary" inline>
         Musync
       </Typography>
       

@@ -60,6 +60,10 @@ const withAuth = (WrappedComponent, type) => {
               pathname: "/login",
               state: { from: "/user/settings" }
             });
+          
+          if(type === 'createPlace') {
+            this.checkCreatePlace();
+          }
         })
         .catch(error => {
           if(axios.isCancel(error)){
@@ -75,15 +79,16 @@ const withAuth = (WrappedComponent, type) => {
             connectedPlace: null
           });
           
-          if(type === 'user_settings')
+          if(type === 'user_settings'){
             history.push({
               pathname: "/login",
               state: { from: "/user/settings" }
             });
-        })
-        .finally(() => {
-          if(type === 'createPlace')
+          }
+  
+          if(type === 'createPlace') {
             this.checkCreatePlace();
+          }
         })
     }
     

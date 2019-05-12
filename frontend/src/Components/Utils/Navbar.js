@@ -57,9 +57,10 @@ const Navbar = (props) => {
           alignItems="center"
           justify="space-between">
       
-      <Grid item xs={6} onClick={() => history.push('/')} style={{cursor: "pointer"}}>
-        <Typography variant="h4" align="center" color="primary">
-          <img src={logo} alt="Musync logo" height={48}/>
+      <Grid container item xs={6} alignItems="center"
+            onClick={() => history.push('/')} style={{cursor: "pointer"}}>
+        <img src={logo} alt="Musync logo" height={48}/>
+        <Typography variant="h4" align="center" color="primary" inline>
           Musync
         </Typography>
       </Grid>
