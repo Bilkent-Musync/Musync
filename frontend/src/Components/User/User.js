@@ -85,7 +85,7 @@ class User extends Component {
             <Grid item xs={10}>
               <Typography variant="h6">
                 <FontAwesomeIcon icon="user"/>
-                {` ${user.name} · ${Math.ceil(user.points)} points`}
+                {user.name}
               </Typography>
             </Grid>
             

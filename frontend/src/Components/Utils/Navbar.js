@@ -7,6 +7,7 @@ import Typography from "@material-ui/core/Typography/index";
 import withAuth from "../../auth/withAuth";
 import history from "../../utils/history";
 import logo from "../../assets/logo.png";
+import grey from "@material-ui/core/es/colors/grey";
 
 
 const Navbar = (props) => {
