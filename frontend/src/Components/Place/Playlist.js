@@ -1,55 +1,80 @@
 import React, {Component} from "react";
 
 import List from "@material-ui/core/List/index";
-import ListItem from "@material-ui/core/ListItem/index";
-import ListItemText from "@material-ui/core/ListItemText/index";
-import ListItemSecondaryAction from "@material-ui/core/ListItemSecondaryAction/index";
-import IconButton from "@material-ui/core/IconButton/index";
-import Typography from "@material-ui/core/Typography/index";
-import {FontAwesomeIcon} from "@fortawesome/react-fontawesome/index";
+import {SERVER_DOMAIN} from "../../config";
+import axios from "axios";
+import SongItem from "./SongItem";
 
 
 class Playlist extends Component {
-  render() {
-    const {songs} = this.props;
+  constructor(props) {
+    super(props);
+    this.getPlaylist = this.getPlaylist.bind(this);
+    
+    this.state = {
+      songs: []
+    };
+  }
   
+  componentDidMount() {
+    this.getPlaylist();
+    
+    const refreshIntervalId = setInterval(this.getPlaylist, 5000);
+    this.setState({
+      refreshIntervalId: refreshIntervalId
+    });
+  }
+  
+  componentWillUnmount() {
+    clearInterval(this.state.refreshIntervalId);
+  }
+  
+  getPlaylist() {
+    const placeId = this.props.placeId;
+    if(!placeId)
+      return;
+    
+    const url = SERVER_DOMAIN + "/place/playlist?placeId=" + placeId;
+    axios.get(url).then((response) => {
+      let songs = response.data.songs;
+      songs = songs.filter(song => !!song.spotifySong.id);
+      
+      this.setState({
+        songs: songs
+      });
+    });
+  };
+  
+  scrollIntoView(id, highlighted) {
+    if(!highlighted)
+      return;
+  
+    const target = document.getElementById(id);
+    // el.scrollIntoView({behavior: "smooth", block: "end", inline: "nearest"});
+    target.parentNode.scrollTop = target.offsetTop;
+    console.log(target, target.parentNode);
+  }
+  
+  render() {
+    const {songs} = this.state;
+    const {currentSong} = this.props;
+    
     return (
-      <List dense>
-        {renderPlaylist(songs)}
+      <List dense style={{height: "70vh", overflow: "auto"}}>
+        {songs.map((song, index) => {
+          const highlighted = (currentSong && currentSong.spotifySong.id === song.spotifySong.id);
+          return <SongItem song={song}
+                           showButton={true}
+                           type="playlist"
+                           key={song.spotifySong.id + index}
+                           highlighted={highlighted}
+                           id={song.spotifySong.id}
+                           onLoad={() => this.scrollIntoView(song.spotifySong.id, highlighted)}/>
+        })}
+        
       </List>
     );
   }
-}
-
-function renderPlaylist(songs) {
-  let counter = 0;
-  return songs.map(song => {
-    counter++;
-    song.id = 'song_' + counter;
-    return renderSong(song);
-  });
-}
-
-function renderSong(song) {
-  const {id, name, artist, length} = song;
-  
-  return <ListItem key={id} disableGutters divider>
-    <IconButton color="secondary" onClick={()=> console.log("Add " + name)}>
-      <FontAwesomeIcon  icon="plus" size="xs"/>
-    </IconButton>
-    
-    <ListItemText>
-      <Typography variant="body2" align="left" >
-        {artist + " - " + name + " · " + length}
-      </Typography>
-    </ListItemText>
-    
-    <ListItemSecondaryAction>
-      <IconButton color="secondary" onClick={()=> console.log("Upvote " + name)}>
-        <FontAwesomeIcon  icon="arrow-up" size="xs"/>
-      </IconButton>
-    </ListItemSecondaryAction>
-  </ListItem>;
 }
 
 export default Playlist;

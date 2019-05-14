@@ -10,9 +10,11 @@ import Typography from "@material-ui/core/Typography/index";
 import TextField from "@material-ui/core/TextField/index";
 import Footer from "../Utils/Footer";
 import {generateSpotifyAuthURL} from "../../config";
-import {generateStateParamCookie, setNextAndCurrPathCookies} from "../../utils/utils";
+import {generateStateParamCookie, setNextAndCurrPathCookies, setSpotifyTypeCookie} from "../../utils/utils";
 import {Heading} from "../Utils/Heading";
 import withAuth from "../../auth/withAuth";
+import red from "@material-ui/core/es/colors/red";
+import FormHelperText from "@material-ui/core/FormHelperText";
 
 
 class Login extends Component {
@@ -26,6 +28,7 @@ class Login extends Component {
     const spotifyDenied = location.state ? location.state.spotifyDenied : false;
     const nextPath = location.state ? location.state.from : "/";
     setNextAndCurrPathCookies(nextPath);
+    setSpotifyTypeCookie("login");
     
     this.state = {
       email: "",
@@ -56,7 +59,7 @@ class Login extends Component {
   render() {
     const {loading, authFailed, errorMsg, isAuthenticated, loginAttempted} = this.props;
     const {stateParam, spotifyDenied} = this.state;
-    const errorIcon = <FontAwesomeIcon icon={"exclamation-triangle"}/>;
+    const errorIcon = <FontAwesomeIcon icon={"exclamation-triangle"} style={{color: red[400]}}/>;
     const successIcon = <FontAwesomeIcon icon={"check-circle"}/>;
     const spotifyAuthURL = generateSpotifyAuthURL(stateParam);
   
@@ -101,13 +104,14 @@ class Login extends Component {
               {loading && <CircularProgress size={24}/>}
             </div>
           </form>
-          
+  
           {
             (loginAttempted && authFailed) &&
             <Chip label={' ' + errorMsg}
                   icon={errorIcon}
-                  color="secondary"
-                  variant="outlined"/>}
+                  style={{color: red[400], borderColor: red[400]}}
+                  variant="outlined"/>
+          }
           
           {isAuthenticated && <Chip label="Success! Get ready for musynchronization!"
                                     icon={successIcon}
@@ -133,7 +137,7 @@ class Login extends Component {
           
           {spotifyDenied && <Chip label="Please grant us Spotify access :("
                                   icon={errorIcon}
-                                  color="secondary"
+                                  style={{color: red[600], borderColor: red[400]}}
                                   variant="outlined"/>}
           
           <Typography align="center"

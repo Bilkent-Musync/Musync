@@ -11,8 +11,9 @@ import Typography from "@material-ui/core/Typography/index";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome/index";
 import Footer from "../Utils/Footer";
 import {generateSpotifyAuthURL, USER_REGISTER_URL} from "../../config";
-import {generateStateParamCookie, setNextAndCurrPathCookies} from "../../utils/utils";
+import {generateStateParamCookie, setNextAndCurrPathCookies, setSpotifyTypeCookie} from "../../utils/utils";
 import {Heading} from "../Utils/Heading";
+import red from "@material-ui/core/es/colors/red";
 
 
 class SignUp extends Component {
@@ -26,7 +27,8 @@ class SignUp extends Component {
     
     setNextAndCurrPathCookies(nextPath);
     const stateParam = generateStateParamCookie();
-    
+    setSpotifyTypeCookie("register");
+  
     this.state = {
       name: "",
       email: "",
@@ -89,7 +91,7 @@ class SignUp extends Component {
   
   render() {
     const {loading, error, errorMsg, success, stateParam, spotifyDenied} = this.state;
-    const errorIcon = <FontAwesomeIcon icon={"exclamation-triangle"}/>;
+    const errorIcon = <FontAwesomeIcon icon={"exclamation-triangle"} style={{color: red[400]}}/>;
     const successIcon = <FontAwesomeIcon icon={"check-circle"}/>;
     const spotifyAuthURL = generateSpotifyAuthURL(stateParam);
     
@@ -143,7 +145,7 @@ class SignUp extends Component {
           
           {error && <Chip label={' ' + errorMsg}
                           icon={errorIcon}
-                          color="secondary"
+                          style={{color: red[400], borderColor: red[400]}}
                           variant="outlined"/>}
   
           {success && <Chip label="Success! Get ready for musynchronization!"
@@ -169,7 +171,7 @@ class SignUp extends Component {
           
           {spotifyDenied && <Chip label="Please grant us Spotify access, we will behave"
                                   icon={errorIcon}
-                                  color="secondary"
+                                  style={{color: red[400], borderColor: red[400]}}
                                   variant="outlined"/>}
                                   
           <Typography align="center"

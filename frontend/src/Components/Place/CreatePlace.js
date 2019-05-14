@@ -9,6 +9,7 @@ import FormControlLabel from "@material-ui/core/FormControlLabel";
 import Checkbox from "@material-ui/core/Checkbox";
 import GenrePicker from "./GenrePicker";
 import withAuth from "../../auth/withAuth";
+import PlaylistPicker from "./PlaylistPicker";
 
 
 class CreatePlace extends Component {
@@ -19,6 +20,7 @@ class CreatePlace extends Component {
     this.handleCheckboxChange = this.handleCheckboxChange.bind(this);
     this.handleGenreChange = this.handleGenreChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
+    this.handlePlaylistChange = this.handlePlaylistChange.bind(this);
     
     this.state = {
       name: "",
@@ -27,6 +29,7 @@ class CreatePlace extends Component {
       locationFailed: false,
       locationSuccess: false,
       genres: [],
+      playlist: "",
       isPermanent: true,
     };
   }
@@ -52,6 +55,12 @@ class CreatePlace extends Component {
     });
   }
   
+  handlePlaylistChange(event) {
+    this.setState({
+      playlist: event.value
+    });
+  }
+  
   handleSubmit(event) {
     event.preventDefault();
     
@@ -64,17 +73,16 @@ class CreatePlace extends Component {
       const payload = {...this.state};
       payload.location = location;
       this.props.createPlace(payload);
+    }, error => {
+      console.log(error);
     });
   }
   
   getLocation(success, error) {
-    navigator.geolocation.getCurrentPosition(success);
+    navigator.geolocation.getCurrentPosition(success, error);
   }
   
   render() {
-    const {genres, isAuthenticated} = this.props;
-    
-    // console.log(this.state)
     return (
       <Grid container
             alignItems="center"
@@ -120,6 +128,8 @@ class CreatePlace extends Component {
               this.state.isPermanent &&
               <GenrePicker onChange={this.handleGenreChange}/>
             }
+            
+            <PlaylistPicker onChange={this.handlePlaylistChange}/>
             
             <br/>
             <Button variant="contained"

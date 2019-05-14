@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
 import {Link as RouterLink} from "react-router-dom";
-
+import axios from "axios/index";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome/index";
 import Grid from "@material-ui/core/Grid/index";
 import List from "@material-ui/core/List/index";
@@ -13,22 +13,52 @@ import Navbar from "../Utils/Navbar";
 import Footer from "../Utils/Footer";
 import Button from "@material-ui/core/Button/index";
 import withAuth from "../../auth/withAuth";
-
+import {GET_RECOMMENDED_PLACES} from "../../config";
+import Map2 from "../Places/Map2";
+import {MAP_API_KEY} from "../../config";
 
 class User extends Component {
   constructor(props) {
+
     super(props);
+    this.requestRecommendedPlaces=this.requestRecommendedPlaces.bind(this);
     this.state = {
+      userLocation: { lat: 32, lng: 32 },
       visitedPlaces: [],
-      requestedSongs: []
+      requestedSongs: [],
+      recommendedPlaces : [],
+      loading:false
     };
+    
   }
   
   componentDidMount() {
     const { requestUserInfo, match } = this.props;
     const userId = match.params.id;
     requestUserInfo(userId);
-  }
+    this.requestRecommendedPlaces(userId);
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        const { latitude, longitude } = position.coords;
+      this.setState({
+        userLocation: { lat: latitude, lng: longitude },
+        loading: false
+      });
+    },
+    () => {
+      this.setState({ loading: false });
+      }
+    );
+    }
+  
+  requestRecommendedPlaces(userId){
+    let url = GET_RECOMMENDED_PLACES;
+    axios.get(url+"?userId="+userId).then((response)=>{
+
+      this.setState({recommendedPlaces: response.data.result});
+    });
+
+  };
   
   render() {
     const buttonStyle = {
@@ -36,8 +66,8 @@ class User extends Component {
       margin: "5px"
     };
     
-    const { user, isAuthenticated, authUser } = this.props;
-    const isProfileOwner = (isAuthenticated && user && authUser._id === user._id);
+    const { user, isAuthenticated, authUser, match} = this.props;
+    const isProfileOwner = (isAuthenticated && user && authUser._id === match.params.id);
     
     return (
       <Grid container
@@ -51,16 +81,16 @@ class User extends Component {
         
         {
           user &&
-          <Grid container item xs={12} style={{marginLeft: "5%"}}>
+          <Grid container item xs={12} md={9} style={{marginLeft: "5%"}} justify="center">
             <Grid item xs={10}>
-              <Typography variant="h5">
+              <Typography variant="h6">
                 <FontAwesomeIcon icon="user"/>
-                {` ${user.name} · ${Math.ceil(user.points)} points`}
+                {user.name}
               </Typography>
             </Grid>
             
             <Grid item xs={10} style={{marginTop: "3%"}}>
-              <Typography variant="body2">
+              <Typography variant="body2" color="primary">
                 Visited Places
               </Typography>
               
@@ -70,7 +100,7 @@ class User extends Component {
             </Grid>
             
             <Grid item xs={10} style={{marginTop: "3%"}}>
-              <Typography variant="body2">
+              <Typography variant="body2" color="primary">
                 Song Requests
               </Typography>
               
@@ -80,13 +110,16 @@ class User extends Component {
             </Grid>
             
             <Grid item xs={10} style={{marginTop: "3%"}}>
-              <Typography variant="body2">
+              <Typography variant="body2" color="primary">
                 Recommended Places
               </Typography>
               
-              <List dense>
-                {getRecommendedPlaces(user.recommendedPlaces)}
-              </List>
+              {
+                isProfileOwner &&
+                <List dense>
+                  {getRecommendedPlaces(this.state.recommendedPlaces,this.state.userLocation)}
+                </List>
+              }
             </Grid>
           </Grid>
         }
@@ -112,6 +145,7 @@ class User extends Component {
   
             <Typography gutterBottom align="center" style={{marginTop: "10px"}}>
               <Link component={RouterLink}
+                    color="secondary"
                     to="/logout"
                     onClick={() => this.props.logout()}
                     children="Logout" />
@@ -119,7 +153,7 @@ class User extends Component {
           </Grid>
         }
         
-        <Footer style={{position: "fixed", bottom: "5%"}}/>
+        <Footer />
       
       </Grid>
     );
@@ -166,25 +200,21 @@ function getRequestedSongs(songs) {
   });
 }
 
-function getRecommendedPlaces(places) {
+function getRecommendedPlaces(places, location) {
   if(!places || places.length === 0)
     return <Typography gutterBottom variant="body1">
       We need more time to recommend you a new place.
     </Typography>;
   
-  let counter = 0;
-  return places.map(place => {
-    const placeName = place.name;
-    const placeGenres = place.genres;
-    counter++;
-    
-    return <ListItem key={counter} disableGutters>
-      <ListItemIcon>
-        <FontAwesomeIcon icon="glass-martini"/>
-      </ListItemIcon>
-      <ListItemText primary={placeName + " · " + placeGenres.join(', ')}/>
-    </ListItem>;
-  });
+  
+  return <Map2
+    places={places}
+    initialCenter={location}
+    googleMapURL={`https://maps.googleapis.com/maps/api/js?key=${MAP_API_KEY}&v=3.exp&libraries=geometry,drawing,places`}
+    loadingElement={<div align="center" style={{ height: `100%` }} />}
+    containerElement={<div align="center" style={{ height: `100%`, width: `100%` }} />}
+    mapElement={<div align="center" style={{ height: '50vh', width:'80vw' }} />}
+  />;
 }
 
 export default withAuth(User, 'user');

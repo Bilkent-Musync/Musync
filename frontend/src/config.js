@@ -1,6 +1,6 @@
 export const SERVER_DOMAIN = "http://localhost:1234";
 export const SPOTIFY_INFO = {
-  clientID: 'b954f3b9ea8f48c28c716c0131dcaf92',
+  clientID: '',
   scopes: 'user-library-modify ' +
     'playlist-read-private ' +
     'user-read-email ' +
@@ -23,6 +23,15 @@ export const GET_PLACE_URL = SERVER_DOMAIN + "/place";
 export const CREATE_PLACE_URL = SERVER_DOMAIN + "/place";
 export const GET_NEAR_PLACES_URL = SERVER_DOMAIN + "/place/closest";
 export const CONNECT_PLACE_URL = SERVER_DOMAIN + "/place/connect";
+export const GET_GENRES_URL = SERVER_DOMAIN + "/genres";
+export const VOTE_URL = SERVER_DOMAIN +  "/place/voteforsong";
+export const GET_VOTING_STATUS_URL = SERVER_DOMAIN + "/place/votestatus";
+export const CONNECT_SPOTIFY_URL = SERVER_DOMAIN + "/user/connectspotify";
+export const GET_PLAYLISTS_URL = SERVER_DOMAIN + "/user/playlists";
+export const GET_PLAYBACK_INFO_URL = SERVER_DOMAIN + "/place/playback";
+export const MAP_API_KEY = "";
+export const GET_RECOMMENDED_PLACES = SERVER_DOMAIN +"/user/recommendedplaces";
+
 
 export function generateSpotifyAuthURL(stateParam) {
   const {protocol, host} = window.location;

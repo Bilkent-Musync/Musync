@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const models = require("../models/Models");
+const spotifyController = require('./SpotifyController');
 
 //TODO: Implement a better way to define and store salt for password
 const passwordSalt = "salt";
@@ -16,6 +17,85 @@ router.post('/update', updateUser);
 router.get('/logout', logoutUser);
 router.get('/connectspotify', connectSpotify);
 router.get('/gethistory', getUserHistory);
+router.get('/playlists', getUserPlaylists);
+router.get('/recommendedplaces',getRecommendedPlaces);
+async function getGenreNames(place) {
+  let genres = [];
+  let genresIds = place.genres;
+  for (let i = 0; i < genresIds.length;i++){
+    let genre = await models.Genre.findOne({_id: genresIds[i]});
+    genres.push(genre.name);
+  }
+  return genres;
+}
+async function getRecommendedPlaces(req,res,next){
+  if (req.query.userId) {
+    if (!models.ObjectID.isValid(req.query.userId)) {
+      res.status(400).send('Error: Invalid user id');
+    }
+  
+  let user = await models.User.findOne({_id: new models.ObjectID(req.query.userId)});
+
+  let preferredGenres = [];
+
+  for(const visitedPlace of user.visitedPlaces){
+    let visPlace = await models.Place.findOne({_id:visitedPlace.place});
+    for (const genre of visPlace.genres){
+      preferredGenres.push(genre);
+    }
+  }
+  preferredGenres = [...new Set(preferredGenres)];
+  
+  let places = await models.Place.find();
+  let result = [];
+  
+
+  for(const place of places){
+    let flag = false;
+    
+    for(const visPlace of user.visitedPlaces){
+      if(visPlace.place.toHexString() === place._id.toHexString()){
+       
+        flag = true;
+        break;
+      }
+    }
+    if(!flag){
+      
+      let genres = place.genres;
+      
+      for(const genre of genres){
+        
+        let flagI = false;
+        for(const pGenre of preferredGenres){
+          if(pGenre.toHexString()===genre.toHexString())
+          {
+            flagI = true;
+          }
+        }
+
+        if(flagI){
+          let genreName = await getGenreNames(place);
+          let newGenres = [];
+          for(const gName of genreName){
+            newGenres.push(gName);
+          }
+          
+          let resultItem = place.publicInfo;
+          resultItem.genres = newGenres;
+          
+          result.push(resultItem);
+          break;
+        }
+      }
+    }
+  }
+
+  res.json({result:result});
+  
+
+  }
+}
 
 async function checkConnection(req, res, next) {
   res.json({
@@ -90,7 +170,7 @@ async function registerUser(req, res, next) {
   }
 
   let user = new models.User({
-    name: name ? name : "",
+    name: name ? name : spotifyConnection.userId,
     isRegistered: true,
     spotifyConnection: spotifyConnection ? spotifyConnection : new models.SpotifyConnection(),
     //TODO: Better email check
@@ -119,20 +199,16 @@ async function registerUser(req, res, next) {
 }
 
 async function loginWithSpotify(req, res, next) {
-  if (req.session && req.session.userId && models.ObjectID.isValid(req.session.userId)) {
-    res.json({ // No need to send anything else. Let frontend redirect
-      success: true,
-    });
-    return;
-  }
+  let storedSpotifyConnection = req.session.spotifyConnection;
+  clearSession(req);
 
-  if (!req.session || !req.session.spotifyConnection || !models.SpotifyConnection.isValidValue(JSON.parse(req.session.spotifyConnection))) {
+  if (!req.session || !storedSpotifyConnection || !models.SpotifyConnection.isValidValue(JSON.parse(storedSpotifyConnection))) {
     res.status(400).send('Error: No valid connection information');
     return;
   }
 
   let user = null;
-  let spotifyUserId = JSON.parse(req.session.spotifyConnection).userId;
+  let spotifyUserId = JSON.parse(storedSpotifyConnection).userId;
   if (spotifyUserId) {
     user = await models.User.findOne({"spotifyConnection.userId": spotifyUserId});
   }
@@ -141,7 +217,6 @@ async function loginWithSpotify(req, res, next) {
     user.lastLogin = Date.now();
     req.session.userId = user._id.toHexString();
     req.session.isSpotifyRegistered = true;
-    req.session.spotifyConnection = false; // No need to keep storing it.
     res.json({ // No need to send anything else. Let frontend redirect
       success: true,
     });
@@ -152,12 +227,7 @@ async function loginWithSpotify(req, res, next) {
 }
 
 async function loginWithCredentials(req, res, next) {
-  if (req.session && req.session.userId && models.ObjectID.isValid(req.session.userId)) {
-    res.json({ // No need to send anything else. Let frontend redirect
-      success: true,
-    });
-    return;
-  }
+  clearSession(req);
 
   const {email, password} = req.body;
 
@@ -277,7 +347,7 @@ async function connectSpotify(req, res, next) {
   }
 
   if (!req.session || !req.session.spotifyConnection
-  || !models.SpotifyConnection.isValidValue(JSON.parse(req.session.spotifyConnection)) || !req.session.spotifyConnection.userId) {
+  || !models.SpotifyConnection.isValidValue(JSON.parse(req.session.spotifyConnection)) || !JSON.parse(req.session.spotifyConnection).userId) {
     res.status(400).send('Error: No valid connection information');
     return;
   }
@@ -296,10 +366,35 @@ async function connectSpotify(req, res, next) {
   res.status(400).send('Error: No such user');
 }
 
+async function getUserPlaylists(req, res, next) {
+  if (!req.session || !req.session.userId || !req.session.isSpotifyRegistered) {
+    res.status(400).send('Error: No valid connection information');
+    return;
+  }
+  
+  const user = await models.User.findOne({_id: new models.ObjectID(req.session.userId)});
+  let playlists = await spotifyController.getPlaylists(user.spotifyConnection);
+  playlists = playlists.response.items;
+  let result = playlists.map(playlist => {
+    return {value: playlist.id, label: playlist.name};
+  });
+  
+  res.status(200).json(result);
+}
+
 // Taken from https://stackoverflow.com/questions/46155/how-to-validate-an-email-address-in-javascript
 function validateEmail(email) {
     var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     return re.test(String(email).toLowerCase());
+}
+
+function clearSession(req) {
+  if (!req.session) return;
+
+  delete req.session.userId;
+  delete req.session.isSpotifyRegistered;
+  delete req.session.spotifyConnection;
+  delete req.session.connectedPlace;
 }
 
 async function getUserHistory(req, res, next) {
@@ -311,7 +406,7 @@ async function getUserHistory(req, res, next) {
     if (user) {
       for( let i = 0; i < user.visitedPlaces.length; i++){
         let visitedPlace = user.visitedPlaces[i];
-        let place = await models.Place.findOne({_id: new models.ObjectID(visitedPlace.place)});
+        let place = await models.Place.findOne({_id: visitedPlace.place});
         if(!place)
           continue;
         
@@ -322,10 +417,13 @@ async function getUserHistory(req, res, next) {
         let requestedSong = user.requestedSongs[i];
         resultSongs.push({name: requestedSong.name, artistName: requestedSong.artistName, placeName: ""});
       }
-      user.visitedPlaces = resultPlaces;
-      user.requestedSongs = resultSongs;
       
-      res.status(200).json(user);
+      res.status(200).json({
+        name: user.name,
+        points: user.points,
+        visitedPlaces: resultPlaces,
+        requestedSongs: resultSongs,
+      });
     }
     else {
       res.status(400).send("Invalid user id.");

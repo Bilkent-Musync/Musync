@@ -9,18 +9,6 @@ class Location {
     this.supportsLocation = (!!navigator.geolocation);
     this.permissionGiven = false;
     this.currLocation = null;
-    
-    this.askForPermission()
-  }
-  
-  askForPermission() {
-    navigator.permissions.query({'name': 'geolocation'}).then(status => {
-      this.permissionGiven = (status.state === "granted");
-      
-      status.onchange = (status) => {
-        this.permissionGiven = (status.state === "granted");
-      }
-    });
   }
   
   getCurrentLocation() {

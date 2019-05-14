@@ -4,10 +4,10 @@ import axios from "axios";
 
 import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
-import {GET_GENRES_URL} from "../../config";
+import {GET_PLAYLISTS_URL} from "../../config";
 
 
-class GenrePicker extends Component {
+class PlaylistPicker extends Component {
   constructor(props) {
     super(props);
     
@@ -18,15 +18,15 @@ class GenrePicker extends Component {
   }
   
   componentDidMount() {
-    axios.get(GET_GENRES_URL, {cancelToken: this.state.source.token})
+    axios.get(GET_PLAYLISTS_URL, {cancelToken: this.state.source.token})
       .then(response => {
-        const genres = response.data;
+        const playlists = response.data;
         this.setState({
-          options: genres && genres.splice(0, 50)
+          options: playlists && playlists.splice(0, 50)
         });
       })
       .catch(error => {
-        console.log(error)
+        console.log(error.response)
       })
   }
   
@@ -36,15 +36,13 @@ class GenrePicker extends Component {
   
   render() {
     const options = this.state.options;
-
+    
     return (
       <Grid item xs={12}>
-        <Typography variant="body1" align="left" gutterBottom>Genres</Typography>
-        <Select isMulti
-                placeholder="Select genres..."
-                name="genres"
+        <Typography variant="body1" align="left" gutterBottom>Playlists</Typography>
+        <Select placeholder="Select playlist..."
+                name="playlists"
                 onChange={this.props.onChange}
-                value={this.props.value}
                 options={options} />
         <br/>
       </Grid>
@@ -52,4 +50,4 @@ class GenrePicker extends Component {
   }
 }
 
-export default GenrePicker;
+export default PlaylistPicker;
